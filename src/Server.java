@@ -4,14 +4,23 @@ import java.net.Socket;
 
 public class Server {
 
-    private Socket socket;
+    public static void main(String[] args) throws IOException {
+        ServerSocket listener = new ServerSocket(7734);
+        while(true) {
+           new RFCServer(listener.accept()).start();
+        }
+    }
 
-    public void listenSocket() {
-        try {
-            ServerSocket serverSocket = new ServerSocket(7734);
-            socket = serverSocket.accept();
-        } catch (IOException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+    private static class RFCServer extends Thread {
+        private Socket socket;
+
+        private RFCServer(Socket socket) {
+            this.socket = socket;
+        }
+
+        @Override
+        public void run() {
+            System.out.println("Hi.. This is a new connection for a peer");
         }
     }
 
