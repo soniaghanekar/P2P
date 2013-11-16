@@ -1,6 +1,5 @@
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -26,12 +25,9 @@ public class Server {
             System.out.println("Hi.. This is a new connection for a peer");
 
             try {
-                InputStream inputStream = socket.getInputStream();
-                InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
-                BufferedReader reader = new BufferedReader(inputStreamReader);
+                BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-                long peerUploadPort =  Long.parseLong(reader.readLine());
-//                String s = reader.readLine();
+                int peerUploadPort =  Integer.parseInt(reader.readLine());
                 System.out.println("Peer port = " + peerUploadPort);
             } catch (IOException e) {
                 e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
