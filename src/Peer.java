@@ -1,25 +1,37 @@
 import java.io.*;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.*;
 
 public class Peer {
 
-    private int id;
+    private String hostname;
+    private UploadServer uploadServer;
 
     public static void main(String[] args) {
         try {
-            UploadServer uploadServer = new UploadServer();
-            uploadServer.start();
+            Peer peer = new Peer();
+            peer.uploadServer.start();
             Socket socket = new Socket("localhost", 7734);
 
             PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
-            writer.println(Integer.toString(uploadServer.port));
-            System.out.println("Sent Upload port= " + uploadServer.port);
+
+            writer.println(peer.hostname);
+            writer.println(Integer.toString(peer.uploadServer.port));
+            System.out.println("Sent Upload port= " + peer.uploadServer.port);
 
             socket.close();
         } catch (IOException e) {
             System.out.println("Server not found");
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+    }
+
+    public Peer() {
+        try {
+            this.hostname = InetAddress.getLocalHost().getHostName();
+            this.uploadServer = new UploadServer();
+
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
         }
     }
 
