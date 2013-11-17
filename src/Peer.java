@@ -28,7 +28,7 @@ public class Peer {
                         break;
 
                     case 2:
-//                        listAllRFCs();
+                        peer.listAllRFCs();
                         break;
 
                     case 3:
@@ -54,6 +54,23 @@ public class Peer {
         }
     }
 
+    private void listAllRFCs() {
+        writer.println("LIST ALL P2P-CI/1.0");
+        writer.println("Host: " + hostname);
+        writer.println("Port: " + uploadServer.port);
+
+        try {
+            System.out.println("\nReceived response from server");
+
+            int len = Integer.parseInt(reader.readLine());
+            System.out.println(reader.readLine());
+            for(int i=0; i<len; i++)
+                System.out.println(reader.readLine());
+        } catch (IOException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+    }
+
     private void lookup(Scanner scanner) {
         System.out.println("Enter the RFC No. you would like to lookup: ");
         int rfcNo = Integer.parseInt(scanner.nextLine());
@@ -72,12 +89,14 @@ public class Peer {
             System.out.println("\nReceived response from server");
             int len = Integer.parseInt(reader.readLine());
             System.out.println(reader.readLine());
-            List<PeerInfo> peersWithRfc = new ArrayList<PeerInfo>();
-            for(int i=0; i<len; i++) {
-                String line = reader.readLine();
-                System.out.println(line);
-                String[] s = line.split(" ");
-                peersWithRfc.add(new PeerInfo(s[s.length-2], Integer.parseInt(s[s.length-1])));
+            if(len != 0) {
+                List<PeerInfo> peersWithRfc = new ArrayList<PeerInfo>();
+                for(int i=0; i<len; i++) {
+                    String line = reader.readLine();
+                    System.out.println(line);
+                    String[] s = line.split(" ");
+                    peersWithRfc.add(new PeerInfo(s[s.length-2], Integer.parseInt(s[s.length-1])));
+                }
             }
 
         } catch (IOException e) {

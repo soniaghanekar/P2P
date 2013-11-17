@@ -52,30 +52,47 @@ public class Server {
             try {
                 String line;
                 while((line = reader.readLine()) != null) {
+                    System.out.println("\nReceived request from peer");
+                    System.out.println(line);
                     String method = line.split(" ")[0];
                     if(method.equals("ADD"))
                         parseAdd(line);
                     else if(method.equals("LOOKUP"))
                         parseLookup(line);
-//                    else
-//                        parseList(line);
+                    else if(method.equals("LIST"))
+                        parseList();
+                    else
+                        writer.println("P2P-CI/1.0 400 BAD REQUEST");
                 }
-
 
             } catch (IOException e) {
                 e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
             }
         }
 
+        private void parseList() throws IOException {
+            System.out.println(reader.readLine());
+            System.out.println(reader.readLine());
+
+            writer.println(rfcInfoList.size());
+            writer.println("P2P-CI/1.0 200 OK");
+            for(RFCInfo rfc: rfcInfoList) {
+                writer.println("RFC " + rfc.number + " " + rfc.title + " " + rfc.hostname + " " +
+                        getPeerFromHostName(rfc.hostname).port);
+            }
+        }
+
         private void parseLookup(String line) throws IOException {
-            System.out.println("\nReceived request from peer");
-            System.out.println(line);
             System.out.println(reader.readLine());
             System.out.println(reader.readLine());
             int rfcNo = Integer.parseInt(line.split(" ")[2]);
             List<Peer> peers = searchPeersHavingRfc(rfcNo);
             String title = getTitleForRfc(rfcNo);
             sendResponse(peers, rfcNo, title);
+        }
+
+        private void sendErrorCode() {
+            writer.println("P2P-CI/1.0 404 NOT FOUND");
         }
 
         private String getTitleForRfc(int rfcNo) {
@@ -87,9 +104,13 @@ public class Server {
 
         private void sendResponse(List<Peer> peers, int rfcNo, String title) {
             writer.println(peers.size());
-            writer.println("P2P-CI/1.0 200 OK");
-            for(Peer peer: peers) {
-                writer.println("RFC " + rfcNo + " " + title + " " + peer.hostname + " " + peer.port);
+            if(peers.size() == 0)
+                writer.println("P2P-CI/1.0 404 NOT FOUND");
+            else {
+                writer.println("P2P-CI/1.0 200 OK");
+                for(Peer peer: peers) {
+                    writer.println("RFC " + rfcNo + " " + title + " " + peer.hostname + " " + peer.port);
+                }
             }
         }
 
@@ -105,8 +126,6 @@ public class Server {
         }
 
         private void parseAdd(String line) throws IOException {
-            System.out.println("\nReceived request from peer");
-            System.out.println(line);
             int number = Integer.parseInt(line.split(" ")[2]);
             String s = reader.readLine();
             System.out.println(s);
