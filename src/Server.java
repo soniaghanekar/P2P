@@ -37,8 +37,6 @@ public class Server {
             try {
                 registerPeer();
                 parseMessages();
-                printPeers();
-                printRFCs();
             } catch (IOException e) {
                 e.printStackTrace();
             } finally {
@@ -54,7 +52,6 @@ public class Server {
             try {
                 String line;
                 while((line = reader.readLine()) != null) {
-                    System.out.println(line);
                     String method = line.split(" ")[0];
                     if(method.equals("ADD"))
                         parseAdd(line);
@@ -70,7 +67,11 @@ public class Server {
             }
         }
 
-        private void parseLookup(String line) {
+        private void parseLookup(String line) throws IOException {
+            System.out.println("\nReceived request from peer");
+            System.out.println(line);
+            System.out.println(reader.readLine());
+            System.out.println(reader.readLine());
             int rfcNo = Integer.parseInt(line.split(" ")[2]);
             List<Peer> peers = searchPeersHavingRfc(rfcNo);
             String title = getTitleForRfc(rfcNo);
@@ -85,6 +86,7 @@ public class Server {
         }
 
         private void sendResponse(List<Peer> peers, int rfcNo, String title) {
+            writer.println(peers.size());
             writer.println("P2P-CI/1.0 200 OK");
             for(Peer peer: peers) {
                 writer.println("RFC " + rfcNo + " " + title + " " + peer.hostname + " " + peer.port);
@@ -93,17 +95,28 @@ public class Server {
 
         private List<Peer> searchPeersHavingRfc(int rfcNo) {
             List<Peer> peersHavingRfc = new ArrayList<Peer>();
-            for(RFCInfo rfc: rfcInfoList)
-                if(rfc.number == rfcNo)
-                    peersHavingRfc.add(getPeerFromHostName(rfc.hostname));
+            for(RFCInfo rfc: rfcInfoList) {
+                if(rfc.number == rfcNo) {
+                    Peer peerFromHostName = getPeerFromHostName(rfc.hostname);
+                    peersHavingRfc.add(peerFromHostName);
+                }
+            }
             return peersHavingRfc;
         }
 
         private void parseAdd(String line) throws IOException {
+            System.out.println("\nReceived request from peer");
+            System.out.println(line);
             int number = Integer.parseInt(line.split(" ")[2]);
-            String host = reader.readLine().split(" ")[1];
-            int port = Integer.parseInt(reader.readLine().split(" ")[1]);
-            String title = reader.readLine().split(" ")[1];
+            String s = reader.readLine();
+            System.out.println(s);
+            String host = s.split(" ")[1];
+            s = reader.readLine();
+            System.out.println(s);
+            int port = Integer.parseInt(s.split(" ")[1]);
+            s = reader.readLine();
+            System.out.println(s);
+            String title = s.split(":")[1].trim();
             rfcInfoList.add(new RFCInfo(number, title, host));
 
             ArrayList<Peer> peers = new ArrayList<Peer>();
@@ -121,7 +134,7 @@ public class Server {
 
     private static Peer getPeerFromHostName(String hostname) {
         for(Peer peer : peerList) {
-            if(peer.hostname == hostname)
+            if(peer.hostname.equals(hostname))
                 return peer;
         }
         return null;
