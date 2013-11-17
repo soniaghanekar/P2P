@@ -5,6 +5,7 @@ public class Peer {
 
     private String hostname;
     private UploadServer uploadServer;
+    BufferedReader reader;
     PrintWriter writer;
     Socket socket;
 
@@ -39,16 +40,21 @@ public class Peer {
         String name = rfc.getName();
         System.out.println(name);
         try {
-
             String title = new BufferedReader(new FileReader(rfc)).readLine().split(":")[1].trim();
-            System.out.println(title);
             writer.println("ADD RFC " + name + " P2P-CI/1.0");
             writer.println("Host: " + hostname);
             writer.println("Port: " + uploadServer.port);
             writer.println("Title: " + title);
+//            readResponse();
         } catch (Exception e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
+    }
+
+    private void readResponse() throws IOException {
+        String s;
+        while((s=reader.readLine()) != null)
+            System.out.println(s);
     }
 
     private void sendPeerInfo(Peer peer) {
@@ -59,7 +65,7 @@ public class Peer {
     private void connectToServer() throws IOException {
         this.socket = new Socket("localhost", 7734);
         this.writer = new PrintWriter(socket.getOutputStream(), true);
-
+        this.reader = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
     }
 
     public Peer() {
