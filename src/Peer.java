@@ -22,7 +22,7 @@ public class Peer {
         Boolean shouldContinue = true;
         while (shouldContinue) {
             System.out.println("\nWhat would you like to do?\n1. Lookup and download an RFC \n2. List of all RFCs available in the system" +
-                    "\n3.Exit\nEnter your choice");
+                    "\n3. Exit\nEnter your choice");
             switch (Integer.parseInt(scanner.nextLine())) {
                 case 1:
                     peer.lookup(scanner);
@@ -83,7 +83,7 @@ public class Peer {
                     String host = scanner.nextLine();
                     PeerInfo peer = getPeerFromHostnameAndRfc(host, rfcNo, peerList);
                     if (peer == null)
-                        System.out.println("Incorrect hostname");
+                        System.out.println("Hostname " + host + " does not contain RFC No. " + rfcNo);
                     else {
                         getRfcFromHost(peer, rfcNo);
                         File rfc = new File("../RFC/" + rfcNo);
