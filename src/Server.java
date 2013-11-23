@@ -78,7 +78,7 @@ public class Server {
             writer.println("P2P-CI/1.0 200 OK");
             for(RFCInfo rfc: rfcInfoList) {
                 writer.println("RFC " + rfc.number + " " + rfc.title + " " + rfc.hostname + " " +
-                        getPeerFromHostName(rfc.hostname).port);
+                        rfc.port);
             }
         }
 
@@ -89,10 +89,6 @@ public class Server {
             List<Peer> peers = searchPeersHavingRfc(rfcNo);
             String title = getTitleForRfc(rfcNo);
             sendResponse(peers, rfcNo, title);
-        }
-
-        private void sendErrorCode() {
-            writer.println("P2P-CI/1.0 404 NOT FOUND");
         }
 
         private String getTitleForRfc(int rfcNo) {
@@ -117,10 +113,8 @@ public class Server {
         private List<Peer> searchPeersHavingRfc(int rfcNo) {
             List<Peer> peersHavingRfc = new ArrayList<Peer>();
             for(RFCInfo rfc: rfcInfoList) {
-                if(rfc.number == rfcNo) {
-                    Peer peerFromHostName = getPeerFromHostName(rfc.hostname);
-                    peersHavingRfc.add(peerFromHostName);
-                }
+                if(rfc.number == rfcNo)
+                    peersHavingRfc.add(new Peer(rfc.hostname, rfc.port));
             }
             return peersHavingRfc;
         }
@@ -136,7 +130,7 @@ public class Server {
             s = reader.readLine();
             System.out.println(s);
             String title = s.split(":")[1].trim();
-            rfcInfoList.add(new RFCInfo(number, title, host));
+            rfcInfoList.add(new RFCInfo(number, title, host, port));
 
             ArrayList<Peer> peers = new ArrayList<Peer>();
             peers.add(new Peer(host, port));
@@ -149,14 +143,6 @@ public class Server {
             peerList.add(new Peer(peerHostName, peerUploadPort));
         }
 
-    }
-
-    private static Peer getPeerFromHostName(String hostname) {
-        for(Peer peer : peerList) {
-            if(peer.hostname.equals(hostname))
-                return peer;
-        }
-        return null;
     }
 
     private static class Peer {
@@ -174,11 +160,13 @@ public class Server {
         int number;
         String title;
         String hostname;
+        int port;
 
-        private RFCInfo(int number, String title, String hostname) {
+        private RFCInfo(int number, String title, String hostname, int port) {
             this.number = number;
             this.title = title;
             this.hostname = hostname;
+            this.port = port;
         }
     }
 

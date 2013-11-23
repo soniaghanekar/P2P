@@ -6,51 +6,51 @@ public class Peer {
 
     private String hostname;
     private UploadServer uploadServer;
+    private Thread thread;
+
     BufferedReader reader;
     PrintWriter writer;
     Socket socket;
 
     public static void main(String[] args) {
         Peer peer = new Peer();
+
+        peer.sendPeerInfo(peer);
+        peer.sendRFCList();
+
+        Scanner scanner = new Scanner(System.in);
+        Boolean shouldContinue = true;
+        while (shouldContinue) {
+            System.out.println("\nWhat would you like to do?\n1. Lookup and download an RFC \n2. List of all RFCs available in the system" +
+                    "\n3.Exit\nEnter your choice");
+            switch (Integer.parseInt(scanner.nextLine())) {
+                case 1:
+                    peer.lookup(scanner);
+                    break;
+
+                case 2:
+                    peer.listAllRFCs();
+                    break;
+
+                case 3:
+                    peer.exit();
+                    shouldContinue = false;
+                    break;
+
+                default:
+                    System.out.println("Enter a valid option");
+
+            }
+        }
+    }
+
+    private void exit() {
         try {
-
-            peer.sendPeerInfo(peer);
-            peer.sendRFCList();
-
-            Scanner scanner = new Scanner(System.in);
-            Boolean shouldContinue = true;
-            while (shouldContinue) {
-                System.out.println("\nWhat would you like to do?\n1. Lookup an RFC \n2. List of all RFCs available in the system\n" +
-                        "3. Download an RFC\n4.Exit\nEnter your choice");
-                switch (Integer.parseInt(scanner.nextLine())) {
-                    case 1:
-                        peer.lookup(scanner);
-                        break;
-
-                    case 2:
-                        peer.listAllRFCs();
-                        break;
-
-                    case 3:
-                        downloadRFC(scanner);
-                        break;
-
-                    case 4:
-                        shouldContinue = false;
-                        break;
-
-                    default:
-                        System.out.println("Enter a valid option");
-
-                }
-            }
-
-        } finally {
-            try {
-                peer.socket.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            thread.interrupt();
+            this.uploadServer.uploadSocket.close();
+            this.socket.close();
+        } catch (IOException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
     }
 
@@ -64,7 +64,7 @@ public class Peer {
 
             int len = Integer.parseInt(reader.readLine());
             System.out.println(reader.readLine());
-            for(int i=0; i<len; i++)
+            for (int i = 0; i < len; i++)
                 System.out.println(reader.readLine());
         } catch (IOException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
@@ -75,20 +75,26 @@ public class Peer {
         System.out.println("Enter the RFC No. you would like to lookup: ");
         int rfcNo = Integer.parseInt(scanner.nextLine());
         List<PeerInfo> peerList = sendLookup(rfcNo);
-        if(peerList != null) {
+        if (peerList != null) {
             System.out.println("Would you want to download the RFC from any of the above peers? (y or n)");
-            switch(scanner.nextLine().toLowerCase().charAt(0)) {
+            switch (scanner.nextLine().toLowerCase().charAt(0)) {
                 case 'y':
                     System.out.println("Enter hostname of the peer from which you would like to download");
                     String host = scanner.nextLine();
-                    PeerInfo peer = getPeerFromHostname(host, peerList);
-                    if(peer == null)
+                    PeerInfo peer = getPeerFromHostnameAndRfc(host, rfcNo, peerList);
+                    if (peer == null)
                         System.out.println("Incorrect hostname");
-                    else
+                    else {
                         getRfcFromHost(peer, rfcNo);
+                        File rfc = new File("../RFC/" + rfcNo);
+                        sendRFCInfo(rfc);
+                    }
                 default:
                     break;
             }
+        }
+        else {
+            System.out.println("RFC No. " + rfcNo + " not found on any of the peers");
         }
     }
 
@@ -96,18 +102,17 @@ public class Peer {
         try {
             Socket clientSocket = new Socket(peer.hostname, peer.port);
             PrintWriter clientWriter = new PrintWriter(clientSocket.getOutputStream(), true);
-            BufferedReader clientReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
             clientWriter.println("GET RFC " + rfcNo + " P2P-CI/1.0");
             clientWriter.println("Host: " + peer.hostname);
             clientWriter.println("OS: " + System.getProperty("os.name"));
 
-            byte [] bytearray = new byte[1024];
+            byte[] bytearray = new byte[1024];
             InputStream is = clientSocket.getInputStream();
             FileOutputStream fos = new FileOutputStream("../RFC/" + rfcNo);
             BufferedOutputStream bos = new BufferedOutputStream(fos);
             int count;
-            while((count = is.read(bytearray, 0, bytearray.length)) > 0)
+            while ((count = is.read(bytearray, 0, bytearray.length)) > 0)
                 bos.write(bytearray, 0, count);
             bos.close();
             clientSocket.close();
@@ -116,9 +121,9 @@ public class Peer {
         }
     }
 
-    private PeerInfo getPeerFromHostname(String hostname, List<PeerInfo> peerList) {
-        for(PeerInfo peer: peerList)
-            if(peer.hostname.equals(hostname))
+    private PeerInfo getPeerFromHostnameAndRfc(String hostname, int rfcNo, List<PeerInfo> peerList) {
+        for (PeerInfo peer : peerList)
+            if (peer.hostname.equals(hostname) && peer.rfcNo == rfcNo)
                 return peer;
         return null;
     }
@@ -127,21 +132,21 @@ public class Peer {
         writer.println("LOOKUP RFC " + rfcNo + " P2P-CI/1.0");
         writer.println("Host: " + hostname);
         writer.println("Port: " + uploadServer.port);
-        return readLookupResponse();
+        return readLookupResponse(rfcNo);
     }
 
-    private List<PeerInfo> readLookupResponse() {
+    private List<PeerInfo> readLookupResponse(int rfcNo) {
         try {
             System.out.println("\nReceived response from server");
             int len = Integer.parseInt(reader.readLine());
             System.out.println(reader.readLine());
-            if(len != 0) {
+            if (len != 0) {
                 List<PeerInfo> peersWithRfc = new ArrayList<PeerInfo>();
-                for(int i=0; i<len; i++) {
+                for (int i = 0; i < len; i++) {
                     String line = reader.readLine();
                     System.out.println(line);
                     String[] s = line.split(" ");
-                    peersWithRfc.add(new PeerInfo(s[s.length-2], Integer.parseInt(s[s.length-1])));
+                    peersWithRfc.add(new PeerInfo(s[s.length - 2], Integer.parseInt(s[s.length - 1]), rfcNo));
                 }
                 return peersWithRfc;
             }
@@ -150,11 +155,6 @@ public class Peer {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
         return null;
-    }
-
-    private static void downloadRFC(Scanner scanner) {
-        System.out.println("Enter the RFC number you would like to download");
-        int rfcNo = Integer.parseInt(scanner.nextLine());
     }
 
     private void sendRFCList() {
@@ -182,7 +182,7 @@ public class Peer {
     }
 
     private void printResponse(int noOfLines) throws IOException {
-        for(int i=0; i<noOfLines; i++)
+        for (int i = 0; i < noOfLines; i++)
             System.out.println(reader.readLine());
     }
 
@@ -201,7 +201,8 @@ public class Peer {
         try {
             this.hostname = InetAddress.getLocalHost().getHostName();
             this.uploadServer = new UploadServer();
-            uploadServer.start();
+            thread = new Thread(uploadServer);
+            thread.start();
             connectToServer();
 
         } catch (Exception e) {
@@ -209,7 +210,7 @@ public class Peer {
         }
     }
 
-    private static class UploadServer extends Thread {
+    private static class UploadServer implements Runnable {
         ServerSocket uploadSocket;
         int port;
 
@@ -224,17 +225,16 @@ public class Peer {
 
         @Override
         public void run() {
-            while (true) {
-                try {
+            try {
+                while (!Thread.currentThread().isInterrupted()) {
                     new PeerRFCServer(uploadSocket.accept()).start();
-
-                } catch (IOException e) {
-                    e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
                 }
+            } catch (IOException e) {
+                System.out.println("Closing the upload server socket");
             }
         }
 
-        private class PeerRFCServer extends Thread{
+        private class PeerRFCServer extends Thread {
             private Socket serverSocket;
             private PrintWriter serverWriter;
             private BufferedReader serverReader;
@@ -255,7 +255,7 @@ public class Peer {
                     String request = serverReader.readLine();
                     System.out.println(request);
                     String[] split = request.split(" ");
-                    if(!(split[0]).equals("GET"))
+                    if (!(split[0]).equals("GET"))
                         serverWriter.println("P2P-CI/1.0 400 BAD REQUEST");
                     else {
                         File rfc = new File("../RFC/" + split[2]);
@@ -265,15 +265,12 @@ public class Peer {
                         bin.read(bytearray, 0, bytearray.length);
                         OutputStream os = serverSocket.getOutputStream();
                         os.write(bytearray, 0, bytearray.length);
-                        os.flush();
                     }
-                }catch (FileNotFoundException f) {
+                } catch (FileNotFoundException f) {
                     serverWriter.println("P2P-CI/1.0 404 NOT FOUND");
-                }
-                catch (IOException e) {
+                } catch (IOException e) {
                     e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-                }
-                finally {
+                } finally {
                     try {
                         serverSocket.close();
                     } catch (IOException e) {
@@ -287,10 +284,12 @@ public class Peer {
     private class PeerInfo {
         String hostname;
         int port;
+        int rfcNo;
 
-        private PeerInfo(String hostname, int port) {
+        private PeerInfo(String hostname, int port, int rfcNo) {
             this.hostname = hostname;
             this.port = port;
+            this.rfcNo = rfcNo;
         }
     }
 }
