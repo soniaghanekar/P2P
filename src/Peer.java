@@ -13,7 +13,11 @@ public class Peer {
     Socket socket;
 
     public static void main(String[] args) {
-        Peer peer = new Peer();
+        if(args.length != 2) {
+            System.out.println("Usage: Peer server-hostname #portno");
+            System.exit(-1);
+        }
+        Peer peer = new Peer(args[0], Integer.parseInt(args[1]));
 
         peer.sendPeerInfo(peer);
         peer.sendRFCList();
@@ -191,19 +195,19 @@ public class Peer {
         writer.println(Integer.toString(peer.uploadServer.port));
     }
 
-    private void connectToServer() throws IOException {
-        this.socket = new Socket("localhost", 7734);
+    private void connectToServer(String hostname, int port) throws IOException {
+        this.socket = new Socket(hostname, port);
         this.writer = new PrintWriter(socket.getOutputStream(), true);
         this.reader = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
     }
 
-    public Peer() {
+    public Peer(String serverHostname, int port) {
         try {
             this.hostname = InetAddress.getLocalHost().getHostName();
             this.uploadServer = new UploadServer();
             thread = new Thread(uploadServer);
             thread.start();
-            connectToServer();
+            connectToServer(serverHostname, port);
 
         } catch (Exception e) {
             e.printStackTrace();

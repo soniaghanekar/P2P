@@ -8,7 +8,12 @@ public class Server {
     static List<RFCInfo> rfcInfoList = new LinkedList<RFCInfo>();
 
     public static void main(String[] args) throws IOException {
-        ServerSocket listener = new ServerSocket(7734);
+        if(args.length != 1) {
+            System.out.println("Server usage: Server #port");
+            System.exit(-1);
+        }
+
+        ServerSocket listener = new ServerSocket(Integer.parseInt(args[0]));
         while(true) {
             new RFCServer(listener.accept()).start();
         }
