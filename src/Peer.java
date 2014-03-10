@@ -220,7 +220,7 @@ public class Peer {
 
         UploadServer() {
             try {
-                uploadSocket = new ServerSocket(0);
+                uploadSocket = new ServerSocket(65411);
                 port = uploadSocket.getLocalPort();
             } catch (IOException e) {
                 e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
